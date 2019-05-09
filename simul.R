@@ -214,3 +214,7 @@ colnames(p) <- c("nA","accuracy")
 
 ggplot(p, mapping = aes(x = nA, y = accuracy, fill = nA, group = "x")) + 
   geom_boxplot(outlier.color = "black", outlier.shape = 8, outlier.size = 2)
+
+
+
+### test
