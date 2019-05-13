@@ -1,17 +1,13 @@
 
-# Packages
+# Required packages
 library(RecordLinkage)
 library(stringr)
 library(ggplot2)
 
 rm(list = ls())
 
-# Initial data
-df1 <-  read.csv("https://query.data.world/s/fophzgeexhxmh66cyjscdsusgagote", header=TRUE, stringsAsFactors=FALSE);
-fname_list <- df1$name[1:10000];
-pcode_list <- c(35000:35050)
 
-# This function using to create error for string (name, address,...)
+# This function using to create error for string (name)
 str_error <- function(string, s){
   # string
   # s : maximum proportion of characters having errors for each string
@@ -173,13 +169,10 @@ FS <- function(nA,nB,e,s=0.2,lambda, mu){
   
   # Using package record linake
   rPairs <- compare.linkage(A,B,exclude = c(1,6,7,8,9), strcmp = T, strcmpfun = levenshteinSim, identity1 = A$id, identity2 = B$id )
-  #summary(rPairs)
   
   w1 <- emWeights(rPairs, cutoff = 0.7)
-  #summary(w1)
   
   result <- emClassify(w1, my = 0.05, ny = 0.1)
-  #summary(result)
   
   temp1 <- result$prediction == "L"
   temp2 <- result$pairs
@@ -190,31 +183,62 @@ FS <- function(nA,nB,e,s=0.2,lambda, mu){
 }
 
 
+# Initial data
+df1 <-  read.csv("https://query.data.world/s/fophzgeexhxmh66cyjscdsusgagote", header=TRUE, stringsAsFactors=FALSE);
+fname_list <- df1$name[1:10000];
+pcode_list <- c(35000:35020)
+
 # Evaluation
 # Vary sample size, fixed e
-nA <- 5
-nB <- 6
+nA <- 10
+nB <- 30
 e <- 0.2
 s <- 0.2
 
-L <- 10 # number of simulated databases
-p <- matrix(0,30,2)
+L <- 2 # number of simulated databases
+n_size <- 5
+p <- matrix(0,L*n_size,2)
 
-for (j in 1:3){
+for (j in 1:n_size){
   nA <- 2*nA
   nB <- 2*nB
-  p[((j-1)*L):(j*L),1] <- nA
+  p[((j-1)*L+1):(j*L),1] <- nA*nB
   for (i in 1:L){
     p[L*(j-1)+i,2] <- FS(nA, nB,e,s)
   }
 }
 
 p <- data.frame(p)
-colnames(p) <- c("nA","accuracy")
+colnames(p) <- c("nAxnB","accuracy")
 
-ggplot(p, mapping = aes(x = nA, y = accuracy, fill = nA, group = "x")) + 
-  geom_boxplot(outlier.color = "black", outlier.shape = 8, outlier.size = 2)
+p$nAxnB <- as.factor(p$nAxnB)
+
+ggplot(p, mapping = aes(x = nAxnB, y = accuracy, fill = nAxnB)) + 
+  geom_boxplot(outlier.color = "black", outlier.shape = 16, outlier.size = 2)
 
 
+#Vary the error e
+nA <- 10
+nB <- 30
+e <- 0.0
+s <- 0.2
 
-### test
+L <- 3 # number of simulated databases
+n_size <- 5
+p <- matrix(0,L*n_size,2)
+
+for (j in 1:n_size){
+  e <- e + 0.1
+  p[((j-1)*L+1):(j*L),1] <- e
+  for (i in 1:L){
+    p[L*(j-1)+i,2] <- FS(nA, nB,e,s)
+  }
+}
+
+p <- data.frame(p)
+colnames(p) <- c("error","accuracy")
+
+p$error <- as.factor(p$error)
+
+ggplot(p, mapping = aes(x = error, y = accuracy, fill = error)) + 
+  geom_boxplot(outlier.color = "black", outlier.shape = 16, outlier.size = 2)
